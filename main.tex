@@ -215,7 +215,7 @@ As a preliminary step here, we suppose the predictive and generative models are 
 
 A significant algorithmic add-on when compared with the original formulas is the use of a \emph{dynamic actions set} : $\mathcal{U}$. At each turn, the new selected action $\tilde{u}$ is drawn off from $\mathcal{U}$, so that the next choice is made over fresh directions that have not yet been explored. This implements the inhibition of return principle stated in \cite{itti2001computational} and \cite{friston2012perceptions}.
 
-A second algorithmic aspect is the use of a threshold $H_\text{ref}$ to stop the evidence accumulation process when enough evidence has been gathered. This threshold is a free parameter of the algorithm that sets wether we priviledge a conservative (tight) or optimistic (loose) threshold.
+A second algorithmic aspect is the use of a threshold $H_\text{ref}$ to stop the evidence accumulation process when enough evidence has been gathered. This threshold is a free parameter of the algorithm that sets wether we priviledge a conservative (tight) or optimistic (loose) threshold. The stopping criterion is the pillar of estimation-based feature selection and needs to be optimized to arbitrate between resource saving and coding accuracy. 
 %is to carefully evaluate the kind of exploratory behavior provided by those principles, and see how they compare with existing active vision algorithms. In practice
 
 
@@ -236,7 +236,19 @@ Natural scene exploration uses two principal tricks to minimize sensory resource
 The baseline foveated vision model we propose relies first on learning local foveated viewpoints on images. Foveated image decomposition is rarely proposed in literature for machine learning purposes, at the exception of Simoncelli's group that has developed a framework to process centrally-magnified images in a bio-realistic fashion (see \cite{freeman2011metamers} and \cite{Deza2016piranhas}). For simplicity and consistency purposes, we restrain here the foveal transformation to its core algorithmic elements, i.e. the compression of an image according to a particular spatial focus. The essential properties of foveated images is that they retain high spatial frequency information at the center an keep only low-frequency information at the periphery. Our foveal image compression rests on a 2D wavelet decomposition of images according to the Haar wavelets dictionary. Taking the example of the MNIST database, we first transform the original images according to a 5-levels wavelet decomposition (see figure \ref{fig:foveated}). We then define a viewpoint $u$ as a set of 3 coordinates $(i,j,h)$, with $i$ the row index, $j$ the column index and $h$ the spatial scale. For each $u$ make correspondence with a vector of three of wavelet coefficients $\boldsymbol{x}_{i,j,h} \in \mathbb{R}^3$, obtained from an horizontal, a vertical and an oblique filter.  The multiscale visual information $\boldsymbol{x}_{i,j}$ available at coordinates $(i,j)$ corresponds to a set of 5 coefficient triplets, namely $\boldsymbol{x}_{i,j}=\{x_{i,j,5}, x_{i/2,j/2,4}, x_{i/4,j/4,3}, x_{i/8,j/8, 2}, x_{i/8,j/8, 1}\}$ (see figure \ref{fig:foveated}), so that each viewpoint owns 15 coefficients (as opposed to 784 pixels in the original image).
 The rightmost image in figure \ref{fig:foveated} displays a reconstructed image from the 4 central viewpoints at coordinates (7, 7), (7, 8) (8, 7) and (8, 8).
 
-A weak generative model is learned for each $u = (i,j,h)$ (making a total of 266 weak models) over 55,000 examples of the MNIST database. For each category $z$ and each position $u$, a generative model is built over parameter set $\Theta_{z,u} = (\rho_{z,u}, \boldsymbol{\mu}_{z,u}, \boldsymbol{\Sigma}_{z,u})$, so that $\forall z,u, \tilde{x}_{z,u} \sim \mathcal{B}(\rho_{z,u}) \times \mathcal{N}(\boldsymbol{\mu}_{z,u}, \boldsymbol{\Sigma}_{z,u})$ with $\mathcal{B}$ a Bernouilli distribussion and $\mathcal{N}$ a multivariate Gaussian.
+A weak generative model is learned for each $u = (i,j,h)$ (making a total of 266 weak models) over 55,000 examples of the MNIST database. For each category $z$ and each position $u$, a generative model is built over parameter set $\Theta_{z,u} = (\rho_{z,u}, \boldsymbol{\mu}_{z,u}, \boldsymbol{\Sigma}_{z,u})$, so that $\forall z,u, \tilde{x}_{z,u} \sim \mathcal{B}(\rho_{z,u}) \times \mathcal{N}(\boldsymbol{\mu}_{z,u}, \boldsymbol{\Sigma}_{z,u})$ with $\mathcal{B}$ a Bernouilli distribution and $\mathcal{N}$ a multivariate Gaussian. The Bernouilli reports the case where the coefficient triplet is null in the considered portion of the image (which is quite common in the peripheral portions of the image), which results in discarding the corresponding triplet from the Gaussian moments calculation. Each resulting weak generative model $p(.|z,u)$ is a mixture of Bernouilli-gated Gaussians over the 10 MNIST labels. For the generative model, a posterior can here be calculated explicitly using Bayes rule, i.e. $q(.|x,u) = \text{softmax} \log p(x|.,u)$.
+
+The saccade exploration algorithm is an adaptation of algorithm \ref{algo:saccade}. The process starts from a loose assumption based on reading the baselin lower-level coefficient of the image, from which an initial guess $\pi_0$ is formed. Then, each follow-up saccade is calculated on the basis of final coordinates $(i,j) \in [0,..,15]^2$, so that the posterior calculation is based on several coefficient triplets. After selecting $(i,j)$, all the corresponding coordinate triplets $h,i,j$ are discarded from $\mathcal{U}$ and can not be reused for upcoming posterior estimation (for the final posterior estimate may be consistent with a uniform scan over wavelet coefficients). 
+
+\begin{figure}[t!]
+	\centerline{
+		\includegraphics[width = .49\linewidth]{img/ICLR-foveated-saccades.png} 
+	}
+	\caption{Image exploration through saccades in the foveated vision model. The left column gives the succesive saccades position over the original image. The second column shows the progressive image reconstruction (from the observed wavelet coefficients) from the coefficients gathered from the saccadic exploration. The third column shows the evolution of the posterior distribution in function of the number of wavelet coefficients read out. The last columns provides the update of the entropy of the posterior distribution}\label{fig:foveated-saccades}
+\end{figure}
+
+
+An example of such saccadic image exploration is presented on figure \ref{fig:foveated-saccades}. 
 
 
 \subsection{Deep neural network implementation}
@@ -246,161 +258,6 @@ The framework simplifies the general case in several ways. A first important sim
 {\color{green} From this general standpoint, many familiar methods and principles naturally derive when considering additional details or simplifying assumptions... MODEL-BASED, SAMPLING, LEARNING (post-hoc optimization), ...}
 
 {\color{green} from sampling $x$ from the generative process through $u$, which entail well-described form of exploration-exploitation optimization learning process [REF].}
-
-
-
-
-
-\subsection{Visuo-motor control}
-
-encoding distribution $q$
-
-decoding distribution : $p$
-
-visual orientation : $u$
-
-visual field : $x$
-
-\emph{steady state assumption}, i.e. $\dot{z} = 0$
-
-
-
-
-In that framework, saccadic exploration means thus to define a sequence of visuo-motor commands $\tilde{u}$, $\tilde{u}'$, $\tilde{u}''$, ... This sequence should ultimately provide a final estimate $\pi^{(n)}(z)$ such that a single cause $\hat{z}$ may dominate the other ones, allowing the system to reach a final decision.  
-
-{\color{blue}
-	This can for instance be done under a greedy setup, i.e. first set $\tilde{z} = \underset{z \in \mathcal{Z}}{\text{argmax }} \pi(z)$, second set $\forall u, \tilde{y}_u = \underset{y \in \mathcal{Y}}{\text{argmax }} P(y|\tilde{z},u)$.
-	Finally, set 
-	\begin{equation}
-	\tilde{u} = \underset{u \in \mathcal{U}}{\text{argmax }}  P(\tilde{z}|u,\tilde{y}_u))
-	\end{equation} which is a proxy for minimizing the entropy. This greedy choice tells in short that if $\tilde{z}$ is the running hypothesis, the operator should orientate his sight toward 
-	%the part of the scene where he thinks his assumption should receive confirmation, i.e. 
-	the part of the scene that is the most discriminative toward confirming $\tilde{z}$ against all other possibilities. }
-	
-	
-	
-	
-	
-	{\color{blue} We show in the following that the two problems may rely on distinct processing elements in a cognitive architecture and develop (??) a probabilistic framework that may allow to address the two problems in a unified perspective. }
-	
-	access to the sensory signal . 
-	
-	i.e. Learning \emph{where to look at} then becomes the critical part, for 
-	
-	Our approach is not a simple XX, but may subserve important issues in the field of AI. 
-	
-	 seems thus to be an important field of investigation that may subserve large applicative outcomes.  
-	
-	%links to the case of a living system having to react at sort notice in a complex environment with limited sensors and limited computational resources. Under survival constraints and resource consuming optimization, not all the visual surroundings need to be scanned, but only the critical features, shapes and displacements. Few critical signals need to be interpreted fast, and many others can be ignored with no harm. This is the essence of visual orienting, a.k.a "active vision", that is present across most living species.  
-	
-
-	
-	%The active sensing framework, that subserves  relies on emitting a signal to sense the environment, as is typically done by a radar or echolocation. Active perception  specifically considers the case of a sensing device that is moved around to increase its range and/or its resolution, where the motor displacements are there to compensate the lack of sensing capability.
-	%concept of action-for-perception where a low resolution/low range  {\color{magenta} If the resulting device is significantly more complex, the global gain of sensing capabilities may be substantial.}
-	\subsection{}
-	
-	
-	
-	
-	The modelling of saccadic control offers thus an excellent testbed for addressing the more general active perception paradigm. It still presents many challenges, among which :
-	\begin{itemize}
-		\item efficiency
-		\item oculomotor control and adaptation
-		\item modelling and prediction
-	\end{itemize}
-	
-	%{\color{blue} Most importantly, for efficiency reasons, the scanning of the scene through saccades needs to be sparse, i.e. select the parts of the scene.
-	%Active vision needs to be encompassed in a full perception-action system view including the visual consequences of action, which emphasizes the importance of \emph{prediction} in visuomotor control \cite{Robinson1975,berthoz1996neural}} {\color{green} (attention Robinson propose un modele de prediction du mouvement lui-meme, pas des consequences visuelles du mouvement).}
-
-
-
-
-\subsection{Figures}
-
-All artwork must be neat, clean, and legible. Lines should be dark
-enough for purposes of reproduction; art work should not be
-hand-drawn. The figure number and caption always appear after the
-figure. Place one line space before the figure caption, and one line
-space after the figure. The figure caption is lower case (except for
-first word and proper nouns); figures are numbered consecutively.
-
-Make sure the figure caption does not get separated from the figure.
-Leave sufficient space to avoid splitting the figure and figure caption.
-
-You may use color figures.
-However, it is best for the
-figure captions and the paper body to make sense if the paper is printed
-either in black/white or in color.
-\begin{figure}[h]
-\begin{center}
-%\framebox[4.0in]{$\;$}
-\fbox{\rule[-.5cm]{0cm}{4cm} \rule[-.5cm]{4cm}{0cm}}
-\end{center}
-\caption{Sample figure caption.}
-\end{figure}
-
-\subsection{Tables}
-
-All tables must be centered, neat, clean and legible. Do not use hand-drawn
-tables. The table number and title always appear before the table. See
-Table~\ref{sample-table}.
-
-Place one line space before the table title, one line space after the table
-title, and one line space after the table. The table title must be lower case
-(except for first word and proper nouns); tables are numbered consecutively.
-
-\begin{table}[t]
-\caption{Sample table title}
-\label{sample-table}
-\begin{center}
-\begin{tabular}{ll}
-\multicolumn{1}{c}{\bf PART}  &\multicolumn{1}{c}{\bf DESCRIPTION}
-\\ \hline \\
-Dendrite         &Input terminal \\
-Axon             &Output terminal \\
-Soma             &Cell body (contains cell nucleus) \\
-\end{tabular}
-\end{center}
-\end{table}
-
-
-\section{Preparing PostScript or PDF files}
-
-Please prepare PostScript or PDF files with paper size ``US Letter'', and
-not, for example, ``A4''. The -t
-letter option on dvips will produce US Letter files.
-
-Consider directly generating PDF files using \verb+pdflatex+
-(especially if you are a MiKTeX user).
-PDF figures must be substituted for EPS figures, however.
-
-Otherwise, please generate your PostScript and PDF files with the following commands:
-\begin{verbatim}
-dvips mypaper.dvi -t letter -Ppdf -G0 -o mypaper.ps
-ps2pdf mypaper.ps mypaper.pdf
-\end{verbatim}
-
-\subsection{Margins in LaTeX}
-
-Most of the margin problems come from figures positioned by hand using
-\verb+\special+ or other commands. We suggest using the command
-\verb+\includegraphics+
-from the graphicx package. Always specify the figure width as a multiple of
-the line width as in the example below using .eps graphics
-\begin{verbatim}
-   \usepackage[dvips]{graphicx} ...
-   \includegraphics[width=0.8\linewidth]{myfile.eps}
-\end{verbatim}
-or % Apr 2009 addition
-\begin{verbatim}
-   \usepackage[pdftex]{graphicx} ...
-   \includegraphics[width=0.8\linewidth]{myfile.pdf}
-\end{verbatim}
-for .pdf graphics.
-See section 4.4 in the graphics bundle documentation (\url{http://www.ctan.org/tex-archive/macros/latex/required/graphics/grfguide.ps})
-
-A number of width problems arise when LaTeX cannot properly hyphenate a
-line. Please give LaTeX hyphenation hints using the \verb+\-+ command.
 
 
 \subsubsection*{Acknowledgments}
