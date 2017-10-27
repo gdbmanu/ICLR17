@@ -80,7 +80,7 @@ The active inference approach relies on a longstanding history of probabilistic 
 \dot{z} &= A(z) + B(u) + \text{process noise}\label{eq:kalman-process}\\
 x &= C(z) + D(u) + \text{measurement noise} \label{eq:kalman-measure}
 \end{align}  
-where $A$, $B$, $C$ and $D$ constitute a generative model $p(x,u,(z,\dot{z}))$ that explicits the dependencies between $u$, $x$ and $z$ \footnote{We note for simplicity $p(x,u,z)$ in the following, with each variable counting for its state vector and possible higher moments.}. 
+where $A$, $B$, $C$ and $D$ constitute a generative model $p(x,u,z,\dot{z})$ that explicits the dependencies between $u$, $x$ and $z$. % \footnote{We note for simplicity $p(x,u,z)$ in the following, with each variable counting for its state vector and possible higher moments.}. 
 The calculation of $\dot{z}$ from $z$ and $u$ and the calculation of $z$ from $u$ and $x$ rely on a model $p = \{A,B,C,D,\text{noise models}\}$. The model can then be inverted in order to compensate the drift of the state estimate \cite{Kalman1960,Baum1966}. The more accurate the model, the better this estimation. 
 
 \subsection{Perception-driven control}
@@ -97,7 +97,7 @@ Each saccade should consolidate a running assumption about $z$ (scene constituen
 Instead of choosing $u$ at random, the general objective of an \emph{active inference} framework is to choose $u$ in a way that should minimize \emph{at most} the current uncertainty about $z$. 
 The knowledge about $z$ can be reflected in an inference distribution $q(z)$. The better the knowledge (precision) about a sensory scene, the lower the \emph{entropy} of $q$, with:
 $$H(q) = E_z[- \log q(z)]$$
-It is shown in \cite{friston2012perceptions} that minimizing the entropy through action can be linked to minimizing the variational free energy attached to the sensory scene. 
+It is shown in \cite{friston2012perceptions} that minimizing the entropy of the posterior through action can be linked to minimizing the variational free energy attached to the sensory scene. 
 
 
 %$ P(z|u,y) \propto P(y|z,u) \pi(z)$. 
@@ -142,7 +142,7 @@ Then, the forthcoming posterior distribution is (Bayes rule):
 
 This operation can be repeated in a sequence, where the actual control $u = \tilde{u}$ is followed by reading the actual visual field $x$, which in turn allows to update the actual posterior distribution over $z$. This updated posterior becomes the prior of the next decision step, i.e. $z_0'\sim  p(z|x, u, z_0)$ so that a new control $u'$ can be carried out etc. 
 
-If we denote $T$ the final step of the process,  with $u_{1:T}$ the actual sequence of controls and $x_{1:T}$ the actual sequence of observations, the final posterior estimate becomes $p(z_{1:T}|z_0, u_{1:T}, x_{1:T})$, which complies with a Hidden Markov Decision Process estimation, whose policy would be defined by the entropy minimization principles defined above, precisely to facilitate the estimation process. The active inference framework thus appears  as a \emph{state-estimation oriented policy} (it has no other purpose than facilitate estimation).
+If we denote $T$ the final step of the process,  with $u_{1:T}$ the actual sequence of controls and $x_{1:T}$ the actual sequence of observations, the final posterior estimate becomes $p(z_{1:T}|z_0, u_{1:T}, x_{1:T})$, which complies with a Hidden Markov Decision Process estimation (see fig.~\ref{fig:graphical}), whose policy would be defined by the entropy minimization principles defined above, precisely to facilitate the estimation process. The active inference framework thus appears  as a \emph{state-estimation oriented policy} (it has no other purpose than facilitate estimation).
 
 If we now turn back to the active vision analogy, $q(z_t)$ is the current assumption about the visual scene under exploration, which is used as a context ("I'm in a park with many squirrels around" --$z_t$--) to form a prediction ("If I look up, ..." --~$u_t$~-- "I may see a squirrel" --$\tilde{x}_{t+1}$--) which would reduce the entropy of the posterior $q(z_{t+1})$ for it would reduce the uncertainty about the constituents of the scene.  This incites me to look up (rather than looking down the grass) so that I can effectively process $x_{t+1}$, which may result in improving (or not) the entropy of the posterior depending whether my prediction was correct or not. I may then look to other places up around to precisely locate squirrels, but I probably don't need to inspect the grass or the lake for the same purpose, so I can currently avoid spending time looking there.   
 
@@ -172,7 +172,12 @@ The active inference framework, that is rooted on the auto-encoding theory (Free
 \end{figure}
 
 Those "two-steps ahead" predictions entail a cognitive architecture based on a graphical model shown in figure \ref{fig:graphical}.
-This formal similarity with usupervised auto-encoding architectures suggests that scene exploration may be learned in an unsupervised way, with both generative and predictive models learned aside to give support to the scene exploration policy. It must be noticed that the generative model (1) stems from the present $z_t$ and present $u_t$ while the inference model (2) heads toward the future $z_{t+1}$.  In the case of active vision however, we assume that $z_t = z_{t+1}$ (see previous section) so that they may be learned over the same encoding. The upper arrow represents the fact that the memory of previous state participate in the present state estimate. At least the dashed arrow represents the control policy that is not inferred but optimized from two steps ahead predictions.
+This formal similarity with auto-encoding architectures suggests that scene exploration may be learned in an unsupervised way, with both generative and inference models learned aside to give support to the scene exploration policy. It must be noticed that the generative model (1) stems from the present $z_t$ and present $u_t$ while the inference model (2) heads toward the future $z_{t+1}$.  In the case of active vision however, we assume that $z_t = z_{t+1}$ (see previous section) so that the generative and inference models may be learned over the same encoding. The upper arrow represents the fact that the memory of previous state participate in the present state estimate, and the dashed arrow represents the control policy, that is not inferred but optimized from two steps ahead predictions.
+
+From the computer vision perspective, each different $u$ corresponds to a different pose or a different viewpoint, so that a distinct set of inference/generative models should be learned for each different $u$. The idea of having many models to identify a scene complies with the weak classifiers evidence accumulation principle used in computer vision (see \cite{viola2003fast}). Weak classifiers generally reduce to a set of low-level filters where $u$ may correspond to the image coordinates where it is applied. They may also correspond to the first layer of convolution filters used in convolutional neural networks. Under that perspective, choosing $u$ (or choosing a subset of $u$'s) corresponds to choosing the coordinates at which the filter is applied, with the image patch obtained from that coordinate corresponding to a "viewpoint" over the whole image (like looking in a keyhole). 
+
+The active inference perspective also addresses important aspects of representation learning, for the scene constituents encoding $z$ are learned as invariants over many viewpoints. Following the   perspective of \cite{bengio2017independently}, the separation of the generative model in $u$ and $z$ separates the cause of perception in a self-generated  the 
+
 
 Assuming the predictive and generative models are already drawn out, a \emph{model-based} approach to sequential view selection is provided in algorithm \ref{algo:saccade}. It globally complies with the predictive coding framework (\cite{rao1999predictive}) with the predictions from the actual posterior estimate used to evaluate the prediction error and update the posterior.
 
