@@ -11,6 +11,10 @@
 \usepackage{amssymb}
 \usepackage{graphicx}
 
+\usepackage{algorithm}
+\usepackage{algorithmic}
+
+
 \title{Toward predictive machine learning for active vision}
 
 
@@ -63,7 +67,7 @@ Bla bla...
 	The most documented case of active perception is gaze orientation, primarily studied in both man and animal \cite{yarbus1967eye,robinson1968eye}. A nice review of principal promises of \emph{animate} vision against passive vision  is presented in \cite{ballard1991animate},  in relation with eye-hand coordination in computer vision.
 	A salient feature of superior vertebrates visual apparatus is the foveated retina that concentrates  photoreceptors over a small central portion of the visual field.
 	%, {\color{magenta} following an approximate exponential decrease of resolution from the center to the periphery [REF?]}. 
-	 This scan of the visual scene is principally done with high-speed targeted eye movements called saccades (\cite{yarbus1967eye}), that sequentially capture local chunks of the visual scene. 
+	 The scanning of the visual scene is principally done with high-speed targeted eye movements called saccades (\cite{yarbus1967eye}), that sequentially capture local chunks of the visual scene. 
 	
 	\subsection{Existing work}	
 	
@@ -83,7 +87,7 @@ x &= C(z) + D(u) + \text{measurement noise} \label{eq:kalman-measure}
 where $A$, $B$, $C$ and $D$ constitute a generative model $p(x,u,z,\dot{z})$ that explicits the dependencies between $u$, $x$ and $z$. % \footnote{We note for simplicity $p(x,u,z)$ in the following, with each variable counting for its state vector and possible higher moments.}. 
 The calculation of $\dot{z}$ from $z$ and $u$ and the calculation of $z$ from $u$ and $x$ rely on a model $p = \{A,B,C,D,\text{noise models}\}$. The model can then be inverted in order to compensate the drift of the state estimate \cite{Kalman1960,Baum1966}. The more accurate the model, the better this estimation. 
 
-\subsection{Perception-driven control}
+\section{Perception-driven control}
 The question addressed by \cite{friston2012perceptions} is the design a \emph{controller} $C$ \emph{that outputs a control $u$ from $z$} so as to maximize the accuracy of this state estimation process. This is the purpose of a \emph{perception-driven} controller.
 
 The logic behind the model is that of an external sensory scene $X$ that is never undisclosed in full, but only sensed under a particular view $x$ under sensor orientation $u$ (like it is the case in foveated vision). 
@@ -134,9 +138,9 @@ Then, the forthcoming posterior distribution is (Bayes rule):
 	predict the effect of $u$,  i.e. 
 	$$ \tilde{u} = \underset{u}{\text{argmin}} \frac{1}{N} \sum_{i = 1..N, x_i \sim p, z_i \in \mathcal{Z}} -\log p(z_i| x_i, u, z_0) $$ or on an even sharper direct estimation through maximum likelihood estimates (point estimate):
 	\begin{align*}
-	&\tilde{u} = \underset{u}{\text{argmin }} - \log p(z_\text{max}|x_\text{max}, u, z_0)	\\
+	&x_\text{max} = \underset{x}{\text{argmax }} p(x|u,z_0)\\	
 	&z_\text{max} = \underset{z}{\text{argmax }} p(z|x_\text{max}, u, z_0)\\
-	&x_\text{max} = \underset{x}{\text{argmax }} p(x|u,z_0)
+	&\tilde{u} = \underset{u}{\text{argmin }} - \log p(z_\text{max}|x_\text{max}, u, z_0)	
 	\end{align*}
 
 
@@ -144,13 +148,14 @@ This operation can be repeated in a sequence, where the actual control $u = \til
 
 If we denote $T$ the final step of the process,  with $u_{1:T}$ the actual sequence of controls and $x_{1:T}$ the actual sequence of observations, the final posterior estimate becomes $p(z_{1:T}|z_0, u_{1:T}, x_{1:T})$, which complies with a Hidden Markov Decision Process estimation (see fig.~\ref{fig:graphical}), whose policy would be defined by the entropy minimization principles defined above, precisely to facilitate the estimation process. The active inference framework thus appears  as a \emph{state-estimation oriented policy} (it has no other purpose than facilitate estimation).
 
-If we now turn back to the active vision analogy, $q(z_t)$ is the current assumption about the visual scene under exploration, which is used as a context ("I'm in a park with many squirrels around" --$z_t$--) to form a prediction ("If I look up, ..." --~$u_t$~-- "I may see a squirrel" --$\tilde{x}_{t+1}$--) which would reduce the entropy of the posterior $q(z_{t+1})$ for it would reduce the uncertainty about the constituents of the scene.  This incites me to look up (rather than looking down the grass) so that I can effectively process $x_{t+1}$, which may result in improving (or not) the entropy of the posterior depending whether my prediction was correct or not. I may then look to other places up around to precisely locate squirrels, but I probably don't need to inspect the grass or the lake for the same purpose, so I can currently avoid spending time looking there.   
+If we now turn back to the active vision analogy, $q(z_t)$ is the current assumption about the visual scene under exploration, which is used as a context ("I'm in a park with many squirrels around" --~$z_t$~--) to form a prediction ("If I look up, ..." --~$u_t$~-- "I may see a squirrel" --~$\tilde{x}_{t+1}$~--~) which would reduce the entropy of the posterior $q(z_{t+1})$ for it would reduce the uncertainty about the constituents of the scene.  This incites me to look up (rather than looking down the grass) so that I can effectively process $x_{t+1}$, which may result in improving (or not) the entropy of the posterior depending whether my prediction was correct or not. I may then look to other places up around to precisely locate squirrels, but I probably don't need to inspect the grass or the lake for the same purpose, so I can currently avoid spending time looking there.   
 
 The active perception framework allows many relieving simplification from the general POMDP estimation framework, first in considering that changing $u$ has no effect on the scene constituents, i.e. $p(z_{t+1}|u,z_t) = p(z_{t+1}|z_t)$. Then using the \emph{steady state} assumption, that considers that no significant change should take place in the scene constituents during a saccadic exploration process, i.e. $\forall t, t', z_{t} = z_{t'} = z$. This finally entails a simplified chaining of the posterior estimation:
  	\begin{align*}
  	p(z|x_{t+1},u_t) &= \frac{p(x_{t+1}|z,u_t) p(z|x_t, u_t)}{\sum_{z'}p(x_{t+1}|z',u_t) p(z'|x_t, u_t)}
  	\end{align*}
 with $p(z|x_t, u_t)$ calculated at the previous step, issuing a final estimate $p(z|z_0, u_{1:T}, x_{1:T})$.  
+
 
 %{\color{blue} Put in a sequential setup :
 %	\begin{align*}
@@ -160,7 +165,7 @@ with $p(z|x_t, u_t)$ calculated at the previous step, issuing a final estimate $
 %	\end{align*}
 %	}
 
-\section{Implementations}
+\section{Interpretation}
 
 The active inference framework, that is rooted on the auto-encoding theory (Free Energy minimization) and predictive coding, provides a clear roadmap toward an effective implementation in artificial devices. It should rely on three elements, namely a generative model $p$ that should predict the next sensory scene under the current hypothesis $z$, an inference network $q$ that should predict the next posterior under putative observation $\tilde{x}$, and a policy $\rho$ that should use those predictions to issue a scene-estimation oriented control $u$.  
 
@@ -172,29 +177,69 @@ The active inference framework, that is rooted on the auto-encoding theory (Free
 \end{figure}
 
 Those "two-steps ahead" predictions entail a cognitive architecture based on a graphical model shown in figure \ref{fig:graphical}.
-This formal similarity with auto-encoding architectures suggests that scene exploration may be learned in an unsupervised way, with both generative and inference models learned aside to give support to the scene exploration policy. It must be noticed that the generative model (1) stems from the present $z_t$ and present $u_t$ while the inference model (2) heads toward the future $z_{t+1}$.  In the case of active vision however, we assume that $z_t = z_{t+1}$ (see previous section) so that the generative and inference models may be learned over the same encoding. The upper arrow represents the fact that the memory of previous state participate in the present state estimate, and the dashed arrow represents the control policy, that is not inferred but optimized from two steps ahead predictions.
+This formal similarity with auto-encoding architectures suggests that scene exploration may be learned in an unsupervised way, with both generative and inference models learned aside to give support to the scene exploration policy. It must be noticed that the generative model (1) stems from the present $z_t$ and present $u_t$ while the inference model (2) heads toward the future $z_{t+1}$.  In the case of active vision however, we assume that $z_t = z_{t+1}$ (steady-state assumption~--~see previous section) so that the generative and inference models may be learned over the same encoding. The upper arrow represents the fact that the memory of the previous state participates in the present state estimate, and the dashed arrow represents the control policy, that is not inferred but optimized from two steps ahead predictions.
 
-From the computer vision perspective, each different $u$ corresponds to a different pose or a different viewpoint, so that a distinct set of inference/generative models should be learned for each different $u$. The idea of having many models to identify a scene complies with the weak classifiers evidence accumulation principle used in computer vision (see \cite{viola2003fast}). Weak classifiers generally reduce to a set of low-level filters where $u$ may correspond to the image coordinates where it is applied. They may also correspond to the first layer of convolution filters used in convolutional neural networks. Under that perspective, choosing $u$ (or choosing a subset of $u$'s) corresponds to choosing the coordinates at which the filter is applied, with the image patch obtained from that coordinate corresponding to a "viewpoint" over the whole image (like looking in a keyhole). 
+From the computer vision perspective, each different $u$ corresponds to a different pose or a different viewpoint, so that a distinct set of inference/generative models should be learned for each different $u$. The idea of having many models to identify a scene complies with the weak classifiers evidence accumulation principle used in computer vision (see \cite{viola2003fast}). In static image analysis, the weak classifiers generally reduce to a set of low-level filters, with $u$ corresponding to the coordinates at which the filters are applied. They may also correspond to the first layer of convolution filters used in convolutional neural networks. Under that perspective, choosing $u$ (or choosing a subset of $u$'s) corresponds to choosing the set of coordinates at which the filter is applied, with each image patch obtained from a particular coordinate corresponding to a "viewpoint" over the whole image (like looking in a keyhole). 
 
-The active inference perspective also addresses important aspects of representation learning, for the scene constituents encoding $z$ are learned as invariants over many viewpoints. Following the   perspective of \cite{bengio2017independently}, the separation of the generative model in $u$ and $z$ separates the cause of perception in a self-generated  the 
+The active inference perspective also addresses important aspects of representation learning, for the scene constituents encoding $z$ are learned as invariants over many viewpoints.  The structure of the coding scheme imposes $z$ not to (or minimally) vary across views (over the same object). Following the   perspective proposed in \cite{bengio2017independently}, one may consider a dual encoding of a view $x$: $u$ and $z$, with $z$ accounting for the view-independent scene identity information and $u$ accounting for the gaze orientation (or subjective position) information. In our case the gaze orientation information is fully disclosed (as it belongs to the control parameters), while the scene identity is not. This separation of the encoding in two components is only viable if there is a cross-talk between components, i.e. if $u$ informs $z$ about the position at which $x$ is seen as a side variable over the generator and the discriminator, i.e. $u, z \rightarrow x$ (generation) and $u, x \rightarrow z$ (inference). 
+
+\section{Implementation}
+
+As a preliminary step here, we suppose the predictive and generative models are given to the controller. The discriminator and the generator are trained separately in a supervised fashion so that we can evaluate the properties of the control policy.  This \emph{model-based} approach to sequential view selection is provided in algorithms \ref{algo:saccade-policy} and \ref{algo:saccade}. It globally complies with the predictive coding framework (\cite{rao1999predictive}) with the predictions from the actual posterior estimate used to evaluate the prediction error and update the posterior.
+
+\begin{algorithm}[t!]
+	\caption{Prediction-Based Policy}\label{algo:saccade-policy}
+	\begin{algorithmic}
+		\REQUIRE  $p$ (generator), $q$ (discriminator), $\pi$ (prior), $\mathcal{U}$ (actions set)
+		\STATE predict $z \sim \pi$
+		\STATE $\forall u \in \mathcal{U}$, predict $\tilde{x}_u \sim p(x|z,u)$
+		\RETURN $\tilde{u} = \underset{u \in \mathcal{U}}{\text{argmax }} q(z|x_u,u)$
+	\end{algorithmic}
+\end{algorithm}
+
+\begin{algorithm}[t!]
+	\caption{Scene Exploration}\label{algo:saccade}
+	\begin{algorithmic}
+		\REQUIRE  $p$ (generator), $q$ (discriminator), $\pi_0$ (initial prior), $\mathcal{U}$ (actions set)
+		\STATE $\pi \leftarrow \pi_0$ 
+		\WHILE {$H(\pi) > H_\text{ref}$}
+			\STATE choose: $\tilde{u} \leftarrow \text{Prediction-Based Policy}(p, q, \pi, \mathcal{U})$
+			\STATE read: $x_{\tilde{u}}$
+			\STATE update: $\forall z, \text{odd}[z] \leftarrow \log q(z|x_u,u) + \log \pi(z)$ 
+			\STATE $\pi \leftarrow \text{softmax} (\text{odd})$ \COMMENT{\emph{posterior becomes prior}}
+			\STATE $\mathcal{U} \leftarrow \mathcal{U} \setminus \{\tilde{u}\}$ 
+		\ENDWHILE
+		\RETURN $\pi$
+	\end{algorithmic}
+\end{algorithm}
+
+A significant algorithmic add-on when compared with the original formulas is the use of a \emph{dynamic actions set} : $\mathcal{U}$. At each turn, the new selected action $\tilde{u}$ is drawn off from $\mathcal{U}$, so that the next choice is made over fresh directions that have not yet been explored. This implements the inhibition of return principle stated in \cite{itti2001computational} and \cite{friston2012perceptions}.
+
+A second algorithmic aspect is the use of a threshold $H_\text{ref}$ to stop the evidence accumulation process when enough evidence has been gathered. This threshold is a free parameter of the algorithm that sets wether we priviledge a conservative (tight) or optimistic (loose) threshold.
+%is to carefully evaluate the kind of exploratory behavior provided by those principles, and see how they compare with existing active vision algorithms. In practice
 
 
-Assuming the predictive and generative models are already drawn out, a \emph{model-based} approach to sequential view selection is provided in algorithm \ref{algo:saccade}. It globally complies with the predictive coding framework (\cite{rao1999predictive}) with the predictions from the actual posterior estimate used to evaluate the prediction error and update the posterior.
+\subsection{Fovea-based implementation}
 
-{\color{magenta} ALGORITHM : TODO}
+%{\color{blue}First of all, the many computer vision algorithms used to detect objects in a scene are based on highly engineered filters of low-level feature and shape extraction plus highly parallelized application of those filters over the whole image at different scales... }
 
-TODO : parler de weak classifier  
-
-Equipped with this formalism, we can now turn to artificial vision implementation. 
-A first step before a full-scale implementation is to carefully evaluate the kind of exploratory behavior provided by those principles, and see how they compare with existing active vision algorithms. 
-
-{\color{blue}First of all, the many computer vision algorithms used to detect objects in a scene are based on highly engineered filters of low-level feature and shape extraction plus highly parallelized application of those filters over the whole image at different scales... Natural scene exploration, on contrary, uses two principal tricks to avoid unnecessary resource consumption. The first trick is the foveated retina, that concentrates the photoreceptors at the center of the retina, with a more scarce distribution at the periphery. A foveated retina allows both treating central high spatial frequencies, and peripheral low spatial frequencies at a single glance (i.e processes several scales in parallel). The second trick is the sequential saccadic scene exploration that allows to grab high spatial frequency information where it is necessary (serial processing) under some estimation oriented visuo-motor control policy. }
+Natural scene exploration uses two principal tricks to minimize sensory resource consumption. The first trick is the foveated retina, that concentrates the photoreceptors at the center of the retina, with a more scarce distribution at the periphery. A foveated retina allows both treating central high spatial frequencies, and peripheral low spatial frequencies at a single glance (i.e process several scales in parallel). The second trick is the sequential saccadic scene exploration, already mentioned, that allows to grab high spatial frequency information where it is necessary (serial processing). 
 
 
+\begin{figure}[t!]
+	\centerline{
+		\includegraphics[width = \linewidth]{img/ICLR-foveated-model.png} 
+	}
+	\caption{Foveated image construction}\label{fig:foveated}
+\end{figure}
+
+The baseline foveated vision model we propose relies first on learning local foveated viewpoints on images. Foveated image decomposition is rarely proposed in literature for machine learning purposes, at the exception of Simoncelli's group that has developed a framework to process centrally-magnified images in a bio-realistic fashion (see \cite{freeman2011metamers} and \cite{Deza2016piranhas}). For simplicity and consistency purposes, we restrain here the foveal transformation to its core algorithmic elements, i.e. the compression of an image according to a particular spatial focus. The essential properties of foveated images is that they retain high spatial frequency information at the center an keep only low-frequency information at the periphery. Our foveal image compression rests on a 2D wavelet decomposition of images according to the Haar wavelets dictionary. Taking the example of the MNIST database, we first transform the original images according to a 5-levels wavelet decomposition (see figure \ref{fig:foveated}). We then define a viewpoint $u$ as a set of 3 coordinates $(i,j,h)$, with $i$ the row index, $j$ the column index and $h$ the spatial scale. For each $u$ make correspondence with a vector of three of wavelet coefficients $\boldsymbol{x}_{i,j,h} \in \mathbb{R}^3$, obtained from an horizontal, a vertical and an oblique filter.  The multiscale visual information $\boldsymbol{x}_{i,j}$ available at coordinates $(i,j)$ corresponds to a set of 5 coefficient triplets, namely $\boldsymbol{x}_{i,j}=\{x_{i,j,5}, x_{i/2,j/2,4}, x_{i/4,j/4,3}, x_{i/8,j/8, 2}, x_{i/8,j/8, 1}\}$ (see figure \ref{fig:foveated}), so that each viewpoint owns 15 coefficients (as opposed to 784 pixels in the original image).
+The rightmost image in figure \ref{fig:foveated} displays a reconstructed image from the 4 central viewpoints at coordinates (7, 7), (7, 8) (8, 7) and (8, 8).
+
+A weak generative model is learned for each $u = (i,j,h)$ (making a total of 266 weak models) over 55,000 examples of the MNIST database. For each category $z$ and each position $u$, a generative model is built over parameter set $\Theta_{z,u} = (\rho_{z,u}, \boldsymbol{\mu}_{z,u}, \boldsymbol{\Sigma}_{z,u})$, so that $\forall z,u, \tilde{x}_{z,u} \sim \mathcal{B}(\rho_{z,u}) \times \mathcal{N}(\boldsymbol{\mu}_{z,u}, \boldsymbol{\Sigma}_{z,u})$ with $\mathcal{B}$ a Bernouilli distribussion and $\mathcal{N}$ a multivariate Gaussian.
 
 
-
-\subsubsection{Active perception}
+\subsection{Deep neural network implementation}
 
 The framework simplifies the general case in several ways. A first important simplification, when considering 
 
@@ -269,104 +314,6 @@ In that framework, saccadic exploration means thus to define a sequence of visuo
 
 
 
-\section{Model}
-
-Papers to be submitted to ICLR 2017 must be prepared according to the
-instructions presented here.
-
-%% Please note that we have introduced automatic line number generation
-%% into the style file for \LaTeXe. This is to help reviewers
-%% refer to specific lines of the paper when they make their comments. Please do
-%% NOT refer to these line numbers in your paper as they will be removed from the
-%% style file for the final version of accepted papers.
-
-Authors are required to use the ICLR \LaTeX{} style files obtainable at the
-ICLR website. Please make sure you use the current files and
-not previous versions. Tweaking the style files may be grounds for rejection.
-
-\subsection{Retrieval of style files}
-
-The style files for ICLR and other conference information are available on the World Wide Web at
-\begin{center}
-   \url{http://www.iclr.cc/}
-\end{center}
-The file \verb+iclr2017_conference.pdf+ contains these
-instructions and illustrates the
-various formatting requirements your ICLR paper must satisfy.
-Submissions must be made using \LaTeX{} and the style files
-\verb+iclr2017_conference.sty+ and \verb+iclr2017_conference.bst+ (to be used with \LaTeX{}2e). The file
-\verb+iclr2017_conference.tex+ may be used as a ``shell'' for writing your paper. All you
-have to do is replace the author, title, abstract, and text of the paper with
-your own.
-
-The formatting instructions contained in these style files are summarized in
-sections \ref{gen_inst}, \ref{headings}, and \ref{others} below.
-
-\section{General formatting instructions}
-\label{gen_inst}
-
-The text must be confined within a rectangle 5.5~inches (33~picas) wide and
-9~inches (54~picas) long. The left margin is 1.5~inch (9~picas).
-Use 10~point type with a vertical spacing of 11~points. Times New Roman is the
-preferred typeface throughout. Paragraphs are separated by 1/2~line space,
-with no indentation.
-
-Paper title is 17~point, in small caps and left-aligned.
-All pages should start at 1~inch (6~picas) from the top of the page.
-
-Authors' names are
-set in boldface, and each name is placed above its corresponding
-address. The lead author's name is to be listed first, and
-the co-authors' names are set to follow. Authors sharing the
-same address can be on the same line.
-
-Please pay special attention to the instructions in section \ref{others}
-regarding figures, tables, acknowledgments, and references.
-
-\section{Headings: first level}
-\label{headings}
-
-First level headings are in small caps,
-flush left and in point size 12. One line space before the first level
-heading and 1/2~line space after the first level heading.
-
-\subsection{Headings: second level}
-
-Second level headings are in small caps,
-flush left and in point size 10. One line space before the second level
-heading and 1/2~line space after the second level heading.
-
-\subsubsection{Headings: third level}
-
-Third level headings are in small caps,
-flush left and in point size 10. One line space before the third level
-heading and 1/2~line space after the third level heading.
-
-\section{Citations, figures, tables, references}
-\label{others}
-
-These instructions apply to everyone, regardless of the formatter being used.
-
-\subsection{Citations within the text}
-
-Citations within the text should be based on the {\tt natbib} package
-and include the authors' last names and year (with the ``et~al.'' construct
-for more than two authors). When the authors or the publication are
-included in the sentence, the citation should not be in parenthesis (as
-in ``See \citet{Hinton06} for more information.''). Otherwise, the citation
-should be in parenthesis (as in ``Deep learning shows promise to make progress towards AI~\citep{Bengio+chapter2007}.'').
-
-The corresponding references are to be listed in alphabetical order of
-authors, in the \textsc{References} section. As to the format of the
-references themselves, any style is acceptable as long as it is used
-consistently.
-
-\subsection{Footnotes}
-
-Indicate footnotes with a number\footnote{Sample of the first footnote} in the
-text. Place the footnotes at the bottom of the page on which they appear.
-Precede the footnote with a horizontal rule of 2~inches
-(12~picas).\footnote{Sample of the second footnote}
 
 \subsection{Figures}
 
@@ -416,12 +363,6 @@ Soma             &Cell body (contains cell nucleus) \\
 \end{center}
 \end{table}
 
-\section{Final instructions}
-Do not change any aspects of the formatting parameters in the style files.
-In particular, do not modify the width or length of the rectangle the text
-should fit into, and do not change font sizes (except perhaps in the
-\textsc{References} section; see below). Please note that pages should be
-numbered.
 
 \section{Preparing PostScript or PDF files}
 
