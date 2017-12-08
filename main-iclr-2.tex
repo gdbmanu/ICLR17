@@ -268,19 +268,29 @@ The saccade exploration algorithm is an adaptation of algorithm \ref{algo:saccad
 
 \begin{figure}[t!]
 	\centerline{
-		\includegraphics[width = .7\linewidth]{img/ICLR-foveated-saccades.png} 
-	}
-	\caption{Image exploration through saccades in the foveated vision model. The left column gives the successive saccades position over the original image. The second column shows the progressive image reconstruction from the coefficients gathered from the saccadic exploration. The third column shows the evolution of the posterior distribution in function of the number of wavelet coefficients triplets read out. The last columns provides the update of the entropy of the posterior distribution}\label{fig:foveated-saccades}
+		%\includegraphics[width = .7\linewidth]{img/ICLR-foveated-saccades.png} 
+		\includegraphics[width = .2\linewidth]{img/saccade-3-full-traj.png} 
+		\includegraphics[width = .2\linewidth]{img/saccade-3-step-1.png} 
+		\includegraphics[width = .2\linewidth]{img/saccade-3-step-2.png} 
+		\includegraphics[width = .2\linewidth]{img/saccade-3-step-3.png} 
+		\includegraphics[width = .2\linewidth]{img/saccade-3-step-4.png}}
+	\centerline{\textbf{a} \hspace{2.6cm} \textbf{b} \hspace{2.4cm} \textbf{c} \hspace{2.4cm} \textbf{d} \hspace{2.6cm} \textbf{e}}
+	\centerline{\includegraphics[width = .4\linewidth]{img/saccade-3-post.png} 
+	\includegraphics[width = .4\linewidth]{img/saccade-3-entropy.png} }
+	\vspace{-.2cm}
+	\centerline{\# coefficient triplets \hspace{2.9cm} \# coefficient triplets}
+	\centerline{\textbf{f} \hspace{5.5cm} \textbf{g}}
+	\caption{Image exploration through saccades in the foveated vision model. \textbf{a}. Saccades trajectory over the original image (initial position indicated with a red "plus"). \textbf{b--e}. Progressive image reconstruction over the course of saccades.  \textbf{f}. Posterior update in function of the number of wavelet coefficients triplets read out, with one color per category (the figures provide the most competing labels) \textbf{g}. Posterior Entropy update in function of the number of wavelet coefficients triplets.}\label{fig:foveated-saccades}
 \end{figure}
 
 
-An example of such saccadic image exploration is presented in figure \ref{fig:foveated-saccades}.
-The first row shows the state of the process after one saccade. If we look at the central right figure, we see the accumulation of evidence over the scale sub-steps. There is a total of six sub-steps (not including the uniform basis step), over which a posterior is formed on the basis of 15 wavelet coefficients (plus a baseline wavelet coefficient summing all the pixels), that provide a recognition probability around 80\% for the category 3 (that is correct here). The next saccade (second row) heads toward a region of the image that is expected to help confirm the guess, which is the case for the recognition climbs up to about 99\%. The next saccade (third row) allows to reach 99.9\% in favor of class 3, and the final saccade (last row) allows to reach the threshold, set at $H_\text{ref} = 1e^{-5}$ for the entropy.   
+An example of such saccadic image exploration is presented in figure \ref{fig:foveated-saccades}\textbf{a}.
+The state of the recognition process after one saccade is shown on fig. \ref{fig:foveated-saccades}\textbf{b}. Considering the accumulation of evidence over the scale sub-steps shown on fig. \ref{fig:foveated-saccades}\textbf{f}, there is a total of six sub-steps (not including the uniform basis step), over which a posterior is formed from 15 wavelet coefficients (plus a baseline wavelet coefficient summing all the pixels), that provide a recognition probability around 80\% for category 3 (which is correct here). The next saccade (fig. \ref{fig:foveated-saccades}\textbf{c})  heads toward a region of the image that is expected to help confirm the guess, which is that case climbs up to about 99\%. The next saccade (fig. \ref{fig:foveated-saccades}\textbf{d})  allows to reach 99.9\% in favor of class 3, and the final saccade (fig. \ref{fig:foveated-saccades}\textbf{e}) allows to reach the threshold, set at $H_\text{ref} = 1e^{-4}$ for the entropy.   
 
 The model provides apparently realistic saccades, for they cover the full range of the image and tend to point over regions that contain class-characteristic pixels. The image reconstruction after 4 saccades allows to visually recognize a "fuzzy" three, while it would not have been the case if the saccades had been chosen at random.
 The observed trajectory illustrates the \emph{guess confirmation} logic that is behind the active vision framework. Every saccade heads toward a region that is supposed to confirm the current hypothesis. This confirmation bias appears counter-intuitive at first sight, for some would expect the eye to head toward places that may \emph{infirm} the assumption (to challenge the current hypothesis). This is actually not the case for the class-confirming regions are more scarce than the class-infirming regions, so that heading toward a class-confirming region may bring more information in the case it would, by surprise, invalidate the initial assumption.
 
-A strong aspect of the model is the search for an optimal image processing compression, that is reflected in the number of wavelet coefficients used in the reconstruction. The median number of saccades is between 10 and 15 in our setting, corresponding to a compression rate of about 85 \%. It can be more if the threshold is more optimistic, and less if it is more conservative. The number of saccades is representative of the recognition difficulty. Few saccades reflect a ``peace-of-cake'' recognition, while many saccades reflect a hard-to-reach recognition.  
+
 
 \begin{figure}[t!]
 	\centerline{
@@ -295,12 +305,16 @@ Another follow-up aspect is the bad scaling of the full predictive model when la
 Luckily, this parametrized policy is relatively straightforward to compute in advance, given a generative model $p$. Taking $z_0$ as an initial guess, if we note $\tilde{\boldsymbol{x}}_{u,z_0}$ the visual field generative prediction when the object $z_0$ is assumed under visual orientation $u$, then, assuming a uniform prior over the external states, the process-independent look-ahead posterior is~:
 \begin{align}
 %\forall u, \rho(.)|_{u, z_0} = \text{softmax} \left[\log P(\tilde{\boldsymbol{x}}_{u, z_0}|.,u) + \log P(.|u, z_0) + \rho_0[z_0]\right]
-\rho(.)|_{u, z_0} = \text{softmax} [\log p(\tilde{\boldsymbol{x}}_{u, z_0}|.,u)]
+\rho_{u, z_0} (z)=  \frac{p(\tilde{\boldsymbol{x}}_{u, z_0}|z,u)}{\sum_{z'} p(\tilde{\boldsymbol{x}}_{u, z_0}|z',u)}
 \end{align}
 %Then, , one obtains $\rho(.)|_{u, z_0} = \text{softmax} [\log P(\tilde{\boldsymbol{x}}_{u, z_0}|.,u)]$ 
-providing at each $(u, z_0)$ an offline pre-processing of the predictive computations, namely $\rho(z_0)|_{u, z_0}$. Those offline computations provide, for each guess $z_0$, a saliency map over the $u$'s. {\color{blue} Each saliency map then provides an optimal pathway through the image, that, given a certain assumption $z$, follows an evidence-decreasing sequence of viewpoints regarding $z$'s confirmation.}  
+providing at each $(u, z_0)$ an offline pre-processing of the predictive computations, namely $\rho_{u, z_0}(z_0)$. Those offline computations provide, for each guess $z_0$, a saliency map over the $u$'s. {\color{blue} Each saliency map then provides a pathway through the image, that, given a certain assumption $z_0$, follows an evidence-decreasing sequence of viewpoints regarding $z_0$'s confirmation.}  
 
 Examples of such saliency maps are provided in figure \ref{fig:saliency-maps}, for categories 0 to 5. The saliency maps allow to analyze in more detail the class-specific locations (that appear brownish) as opposed to the class-unspecific locations (pale orange to white). First to be noticed is the relative scarceness of the class-specific locations. Those "evidence providing" locations appear, as expected, mutually exclusive from category to category. A small set of saccades is expected to provide most of the classification information while the rest of the image is putatively uninformative (or even counter informative if whitish). A second aspect is that the class-relevant locations are all located in the central part of the images, so there is very few chance for the saccades to explore the periphery of the image where little information is expected to be found. This indicates that the model has captured the essential concentration of class-relevant information in the central part of the images for that particular training set.
+
+%% TODO : Figure
+
+{\color{blue} A strong aspect of the model is the search for an optimal image processing compression, that is reflected in the number of wavelet coefficients used in the reconstruction. The median number of saccades is between 10 and 15 in our setting, corresponding to a compression rate of about 85 \%. It can be more if the threshold is more optimistic, and less if it is more conservative. The number of saccades is representative of the recognition difficulty. Few saccades reflect a ``peace-of-cake'' recognition, while many saccades reflect a hard-to-reach recognition.  }
 
 \section{Outlook and perspectives}
 
